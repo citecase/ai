@@ -33,18 +33,20 @@
 
         h1 {
             color: #333;
-            margin-bottom: 10px;
-            font-size: 24px;
-        }
-
-        .subtitle {
-            color: #666;
             margin-bottom: 30px;
-            font-size: 14px;
+            font-size: 24px;
         }
 
         .password-section {
             margin-bottom: 20px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            display: block;
+            border-radius: 50%;
         }
 
         input[type="password"] {
@@ -59,24 +61,25 @@
 
         input[type="password"]:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #333;
         }
 
         .btn {
-            background: #000;
-            color: white;
-            border: none;
+            background: #fff;
+            color: #000;
+            border: 2px solid #000;
             padding: 12px 32px;
             border-radius: 4px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, color 0.2s;
             width: 100%;
         }
 
         .btn:hover {
-            background: #333;
+            background: #000;
+            color: #fff;
         }
 
         .error {
@@ -117,26 +120,32 @@
             background: #333;
         }
 
-        .icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-            display: none;
+        .subscribe-btn {
+            background: #fff;
+            color: #000;
+            border: 2px solid #000;
+            padding: 12px 32px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            width: 100%;
+            text-decoration: none;
+            display: block;
+            margin-top: 15px;
         }
 
-        .success-message {
-            color: #27ae60;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
+        .subscribe-btn:hover {
+            background: #000;
+            color: #fff;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="password-section" id="passwordSection">
-            <div class="icon">🔒</div>
-            <h1>Secure Access Required</h1>
-            <p class="subtitle">Enter password to continue</p>
+            <h1>CiteCase.in</h1>
             <input 
                 type="password" 
                 id="passwordInput" 
@@ -145,10 +154,11 @@
             >
             <button class="btn" onclick="checkPassword()">Submit</button>
             <p class="error" id="errorMessage">Incorrect password. If you are our subscriber, please contact us on Whatsapp.</p>
+            <a href="https://citecase.in/register" class="subscribe-btn" target="_blank">Subscribe</a>
         </div>
 
         <div class="protected-content" id="protectedContent">
-            <div class="icon">⚖️</div>
+            <h1>CiteCase.in</h1>
             <h1>Access Granted</h1>
             <a href="https://notebooklm.google.com/notebook/b451a149-6b7c-44da-96f0-bd946ea69b31?authuser=2" class="supreme-court-btn" target="_blank">
                 Chat With 2026 Supreme Court Judgments
@@ -181,12 +191,6 @@
                 passwordInput.value = '';
                 passwordInput.focus();
             }
-        }
-
-        function openChat() {
-            alert('This would open the Supreme Court Judgments chat interface.');
-            // In a real application, this would navigate to the chat page
-            // window.location.href = '/supreme-court-chat';
         }
     </script>
 </body>
