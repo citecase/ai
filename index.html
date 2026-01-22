@@ -3,184 +3,325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gateway</title>
+    <title>Knowledge Search & AI Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Marked.js for parsing Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
         body {
-            background-color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
-        .brand-header {
-            font-family: Georgia, serif;
+
+        .markdown-content h1 { @apply text-2xl font-bold mb-4 mt-6 text-gray-900; }
+        .markdown-content h2 { @apply text-xl font-semibold mb-3 mt-5 text-gray-800 border-b pb-2; }
+        .markdown-content p { @apply mb-3 text-gray-600 leading-relaxed; }
+        .markdown-content ul { @apply list-disc ml-6 mb-3 text-gray-600; }
+        .markdown-content code { @apply bg-gray-100 px-1 rounded text-sm font-mono text-pink-600; }
+        .markdown-content pre { @apply bg-gray-800 text-white p-4 rounded-lg mb-4 overflow-x-auto text-sm; }
+        
+        .highlight { background-color: #fef08a; font-weight: 600; }
+
+        .loader {
+            border-top-color: #3b82f6;
+            animation: spinner 1.5s linear infinite;
         }
-        .code-input {
-            width: 50px;
-            height: 60px;
-            border: 1.5px solid #f3f4f6;
-            background-color: #fafafa;
-            text-align: center;
-            font-size: 24px;
-            font-weight: 300;
-            margin: 0 4px;
-            border-radius: 16px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-        .code-input:focus {
-            outline: none;
-            border-color: #000;
-            background-color: #fff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            transform: translateY(-2px);
+
+        .chat-message {
+            max-width: 85%;
+            animation: fadeIn 0.3s ease-out;
         }
-        .modal-overlay {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(8px);
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        #status a {
-            text-decoration: none;
-            color: inherit;
-        }
-        #status a:hover {
-            text-decoration: underline;
-        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen">
+<body class="min-h-screen flex flex-col">
 
-    <!-- Main Content -->
-    <div class="w-full max-w-md px-6 flex flex-col items-center">
-        <div class="mb-16 text-center">
-            <h1 class="text-[20px] font-bold tracking-[0.2em] text-gray-900 brand-header">ai.CiteCase.in</h1>
-        </div>
-
-        <div id="otp-container" class="flex justify-center mb-12">
-            <input type="text" inputmode="numeric" maxlength="1" class="code-input" autofocus autocomplete="off">
-            <input type="text" inputmode="numeric" maxlength="1" class="code-input" autocomplete="off">
-            <input type="text" inputmode="numeric" maxlength="1" class="code-input" autocomplete="off">
-            <input type="text" inputmode="numeric" maxlength="1" class="code-input" autocomplete="off">
-            <input type="text" inputmode="numeric" maxlength="1" class="code-input" autocomplete="off">
-            <input type="text" inputmode="numeric" maxlength="1" class="code-input" autocomplete="off">
-        </div>
-
-        <div class="h-8 mb-8">
-            <div id="status" class="text-center text-[10px] font-semibold tracking-[0.4em] transition-all duration-500 uppercase"></div>
-        </div>
-
-        <button onclick="toggleHelp(true)" class="text-[10px] text-gray-400 tracking-[0.2em] uppercase hover:text-black transition-colors">
-            How to use
-        </button>
-    </div>
-
-    <!-- Help Modal -->
-    <div id="helpModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-6">
-        <div class="bg-white border border-gray-100 shadow-2xl rounded-[32px] p-8 max-w-sm w-full text-left">
-            <h2 class="text-[12px] font-bold tracking-[0.2em] uppercase mb-6 text-gray-800 text-center">How to Use</h2>
-            
-            <div class="space-y-4 text-[11px] leading-relaxed text-gray-500 tracking-wide mb-8">
-                <p>• You can chat with our notes on Supreme Court judgments by entering a 6 digit code.</p>
-                <p>• You will be given access to this only if you are our subscriber.</p>
-                <p>• If you don’t know the code or if it is not working, please contact us on <span class="text-black font-semibold">WhatsApp</span>.</p>
-                <p>• You will be redirected to <span class="text-black font-semibold">Google NotebookLM</span>, where you can sign in using your Gmail.</p>
-                <p>• Chat limits depend on Google’s prevailing policy. We are helping subscribers search our notes with ease via Google NotebookLM.</p>
+    <!-- Navbar/Tabs -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 flex items-center justify-between h-16">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">K</div>
+                <div class="flex flex-col leading-tight">
+                    <span class="font-bold text-gray-800 hidden sm:inline text-sm">Knowledge Hub</span>
+                    <span id="dataStatus" class="text-[10px] text-gray-400 hidden sm:inline">Initializing...</span>
+                </div>
             </div>
-
-            <button onclick="toggleHelp(false)" class="w-full py-3 bg-black text-white rounded-xl text-[10px] font-bold tracking-[0.2em] uppercase">
-                Got it
-            </button>
+            <div class="flex space-x-1 bg-gray-100 p-1 rounded-xl">
+                <button onclick="switchTab('search')" id="tab-search" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-white shadow-sm text-blue-600">Search</button>
+                <button onclick="switchTab('chat')" id="tab-chat" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-500 hover:text-gray-700">AI Chat</button>
+            </div>
         </div>
-    </div>
+    </nav>
+
+    <main id="app" class="flex-grow max-w-4xl w-full mx-auto px-4 py-6">
+        
+        <!-- Loading State -->
+        <div id="loading" class="flex flex-col items-center justify-center py-20">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
+            <p class="text-gray-600 font-medium">Fetching full database...</p>
+        </div>
+
+        <!-- SEARCH VIEW -->
+        <div id="view-search">
+            <div class="relative group mb-6">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Search titles or keywords..." 
+                    class="block w-full pl-11 pr-4 py-4 border-none rounded-2xl bg-white shadow-lg focus:ring-2 focus:ring-blue-500 outline-none text-lg transition-all"
+                >
+            </div>
+            <div id="searchStats" class="mb-4 text-xs font-medium text-gray-400 uppercase tracking-wider ml-2"></div>
+            <div id="results" class="space-y-4"></div>
+        </div>
+
+        <!-- CHAT VIEW -->
+        <div id="view-chat" class="hidden h-[calc(100vh-180px)] flex flex-col">
+            <div id="chatMessages" class="flex-grow overflow-y-auto space-y-4 mb-4 pr-2 no-scrollbar">
+                <div class="bg-blue-50 text-blue-800 p-4 rounded-2xl rounded-tl-none chat-message">
+                    Hi! I've loaded the entire document. You can ask me questions about any part of it.
+                </div>
+            </div>
+            
+            <div class="relative">
+                <div id="chatLoading" class="hidden absolute -top-8 left-0 text-xs text-gray-400 animate-pulse">AI is reading the database...</div>
+                <div class="flex items-end space-x-2 bg-white p-2 rounded-2xl shadow-lg border border-gray-100">
+                    <textarea 
+                        id="chatInput" 
+                        rows="1"
+                        placeholder="Ask about the content..." 
+                        class="flex-grow p-3 focus:outline-none resize-none max-h-32 bg-transparent"
+                    ></textarea>
+                    <button 
+                        id="sendBtn"
+                        class="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
 
     <script>
-        const inputs = document.querySelectorAll('.code-input');
-        const status = document.getElementById('status');
-        const helpModal = document.getElementById('helpModal');
-        const DESTINATION_URL = "https://notebooklm.google.com/notebook/b451a149-6b7c-44da-96f0-bd946ea69b31?authuser=2";
+        const MD_URL = 'https://raw.githubusercontent.com/citecase/I/refs/heads/main/jan2026.md';
+        // Hardcoded API Key for GitHub deployment
+        const apiKey = "AIzaSyB_fLHjG9PVbKe5D9meqkvKkuhBWH2q_QU"; 
+        
+        let rawContent = '';
+        let sections = [];
+        let currentTab = 'search';
 
-        function toggleHelp(show) {
-            if (show) {
-                helpModal.classList.remove('hidden');
-                helpModal.classList.add('flex');
-            } else {
-                helpModal.classList.add('hidden');
-                helpModal.classList.remove('flex');
-                inputs[0].focus();
+        const loadingEl = document.getElementById('loading');
+        const searchInput = document.getElementById('searchInput');
+        const resultsContainer = document.getElementById('results');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatLoading = document.getElementById('chatLoading');
+        const dataStatus = document.getElementById('dataStatus');
+
+        async function fetchData() {
+            try {
+                const response = await fetch(MD_URL);
+                if (!response.ok) throw new Error("Failed to load content from GitHub");
+                
+                rawContent = await response.text();
+                processContent(rawContent);
+                
+                loadingEl.classList.add('hidden');
+                dataStatus.textContent = `${(rawContent.length / 1024).toFixed(1)} KB loaded • ${sections.length} sections`;
+                displayResults(sections);
+            } catch (err) {
+                loadingEl.innerHTML = `
+                    <div class="text-center p-8 bg-white rounded-2xl shadow-sm">
+                        <p class="text-red-500 font-bold mb-2">Error Loading Database</p>
+                        <p class="text-gray-500 text-sm">${err.message}</p>
+                        <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">Retry</button>
+                    </div>
+                `;
             }
         }
 
-        inputs.forEach((input, index) => {
-            input.addEventListener('input', (e) => {
-                if (e.target.value.length > 1) {
-                    e.target.value = e.target.value.slice(-1);
+        function processContent(text) {
+            sections = [];
+            const lines = text.split('\n');
+            let currentSection = { title: 'General Info', content: '' };
+            
+            lines.forEach(line => {
+                if (line.match(/^#+\s/)) {
+                    if (currentSection.content.trim()) {
+                        sections.push({ ...currentSection });
+                    }
+                    currentSection = { 
+                        title: line.replace(/^#+\s*/, '').trim(), 
+                        content: line + '\n' 
+                    };
+                } else {
+                    currentSection.content += line + '\n';
                 }
-                
-                if (e.target.value !== "" && index < inputs.length - 1) {
-                    inputs[index + 1].focus();
-                }
-                
-                checkCode();
             });
+            
+            if (currentSection.content.trim()) {
+                sections.push(currentSection);
+            }
+            
+            if (sections.length === 0 && text.trim()) {
+                sections.push({ title: 'Full Document', content: text });
+            }
+        }
 
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && e.target.value === "" && index > 0) {
-                    inputs[index - 1].focus();
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('view-search').classList.toggle('hidden', tab !== 'search');
+            document.getElementById('view-chat').classList.toggle('hidden', tab !== 'chat');
+            
+            const btnSearch = document.getElementById('tab-search');
+            const btnChat = document.getElementById('tab-chat');
+            
+            if (tab === 'search') {
+                btnSearch.className = "px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-white shadow-sm text-blue-600";
+                btnChat.className = "px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-500 hover:text-gray-700";
+            } else {
+                btnChat.className = "px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-white shadow-sm text-blue-600";
+                btnSearch.className = "px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-500 hover:text-gray-700";
+                chatInput.focus();
+            }
+        }
+
+        function displayResults(data, terms = []) {
+            resultsContainer.innerHTML = '';
+            document.getElementById('searchStats').textContent = `Found ${data.length} matching sections`;
+            
+            data.forEach(s => {
+                const div = document.createElement('div');
+                div.className = 'bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:border-blue-200 transition-colors';
+                
+                let html = marked.parse(s.content);
+                if (terms.length) {
+                    terms.forEach(t => {
+                        if (t.length > 1) {
+                            const regex = new RegExp(`(${t})`, 'gi');
+                            html = html.replace(regex, '<span class="highlight">$1</span>');
+                        }
+                    });
                 }
+                div.innerHTML = `<div class="markdown-content">${html}</div>`;
+                resultsContainer.appendChild(div);
             });
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (!query) return displayResults(sections);
+            const terms = query.split(' ').filter(t => t);
+            const filtered = sections.filter(s => terms.every(t => s.content.toLowerCase().includes(t)));
+            displayResults(filtered, terms);
         });
 
-        function checkCode() {
-            const currentCode = Array.from(inputs).map(i => i.value).join('');
-            
-            if (currentCode.length === 6) {
-                const now = new Date();
-                const d = String(now.getDate()).padStart(2, '0');
-                const m = String(now.getMonth() + 1).padStart(2, '0');
-                const y = String(now.getFullYear()).slice(-2);
-                const targetCode = d + m + y;
+        async function callGemini(userQuery) {
+            const systemPrompt = `You are a specialized Knowledge Assistant. You have access to the complete database provided below. 
+            Answer the user's question based ONLY on this content. 
+            If the answer is not in the text, state that the database doesn't contain that information.
+            Format your response using Markdown for clarity.
 
-                if (currentCode === targetCode) {
-                    // Success UI
-                    status.innerHTML = `<a href="${DESTINATION_URL}" target="_blank">Authorized - Click here if not redirected</a>`;
-                    status.className = "text-center text-[10px] tracking-[0.4em] text-black opacity-100";
-                    
-                    inputs.forEach(i => {
-                        i.style.borderColor = "#000";
-                        i.style.backgroundColor = "#fff";
-                        i.disabled = true;
+            DATABASE CONTENT:
+            ${rawContent} 
+            `;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
                     });
-                    
-                    // Attempt Redirection multiple ways
-                    setTimeout(() => {
-                        // Method 1: standard href
-                        window.location.href = DESTINATION_URL;
-                        
-                        // Method 2: window.open (fallback for some mobile browsers)
-                        window.open(DESTINATION_URL, '_blank');
-                        
-                        // Method 3: assign (different history handling)
-                        window.location.assign(DESTINATION_URL);
-                    }, 400);
-
-                } else {
-                    status.textContent = "Denied";
-                    status.className = "text-center text-[10px] tracking-[0.4em] text-red-400 opacity-100";
-                    
-                    setTimeout(() => {
-                        const codeAfterTimeout = Array.from(inputs).map(i => i.value).join('');
-                        if (codeAfterTimeout.length === 6) {
-                            inputs.forEach(i => {
-                                i.value = "";
-                                i.style.borderColor = "#f3f4f6";
-                            });
-                            inputs[0].focus();
-                            status.textContent = "";
-                        }
-                    }, 1000);
+                    if (!response.ok) throw new Error('API Error');
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't process that.";
+                } catch (err) {
+                    if (i === 4) throw err;
+                    await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
                 }
-            } else {
-                status.textContent = "";
             }
         }
+
+        function addChatMessage(role, text) {
+            const div = document.createElement('div');
+            const isUser = role === 'user';
+            div.className = isUser 
+                ? 'bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none ml-auto chat-message shadow-sm' 
+                : 'bg-white text-gray-800 p-4 rounded-2xl rounded-tl-none border border-gray-100 chat-message shadow-sm';
+            
+            div.innerHTML = isUser ? text : marked.parse(text);
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function handleChat() {
+            const query = chatInput.value.trim();
+            if (!query) return;
+
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+            addChatMessage('user', query);
+            
+            chatLoading.classList.remove('hidden');
+            sendBtn.disabled = true;
+
+            try {
+                const response = await callGemini(query);
+                addChatMessage('ai', response);
+            } catch (err) {
+                addChatMessage('ai', "I had trouble accessing the database. Please check your API key or connection.");
+                console.error(err);
+            } finally {
+                chatLoading.classList.add('hidden');
+                sendBtn.disabled = false;
+            }
+        }
+
+        sendBtn.addEventListener('click', handleChat);
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleChat();
+            }
+        });
+
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        window.onload = fetchData;
     </script>
 </body>
 </html>
